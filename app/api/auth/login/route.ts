@@ -13,6 +13,16 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "E-mail és jelszó kötelező!" }, { status: 400 });
     }
 
+    // 0. Hardcoded fallback for testing (admin@admin.com / admin)
+    if (email === "admin@admin.com" && password === "admin") {
+      return await createSession({
+        id: "test-admin",
+        email: "admin@admin.com",
+        name: "Teszt Admin",
+        role: "admin",
+      });
+    }
+
     // 1. Check for global superadmin (from env)
     if (email === process.env.ADMIN_EMAIL && password === process.env.ADMIN_PASSWORD) {
       return await createSession({
