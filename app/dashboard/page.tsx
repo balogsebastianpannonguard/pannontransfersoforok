@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { LogOut, MapPin, Navigation, User, Phone, CheckCircle, Receipt, ArrowRight, Star, Clock, Calendar, ShieldCheck, CreditCard, ChevronRight } from "lucide-react";
+import { LogOut, MapPin, Navigation, User, Phone, CheckCircle, Receipt, ArrowRight, Star, Clock, Calendar, ShieldCheck, CreditCard, ChevronRight, X } from "lucide-react";
 
 interface User {
   name: string;
@@ -32,6 +32,7 @@ export default function DashboardPage() {
   
   // Állapotok a demóhoz: 'idle' | 'active' | 'generating' | 'receipt'
   const [tripState, setTripState] = useState<'idle' | 'active' | 'generating' | 'receipt'>('idle');
+  const [isClosing, setIsClosing] = useState(false);
 
   useEffect(() => {
     fetch("/api/auth/me")
@@ -57,7 +58,13 @@ export default function DashboardPage() {
     }, 2000); // 2 másodperc "generálás"
   };
 
-  const handleReset = () => setTripState('idle');
+  const handleReset = () => {
+    setIsClosing(true);
+    setTimeout(() => {
+      setTripState('idle');
+      setIsClosing(false);
+    }, 400); // 400ms animáció
+  };
 
   if (isLoading) {
     return (
@@ -203,30 +210,32 @@ export default function DashboardPage() {
 
       {/* E-NYUGTA ÁLLAPOT (Modal) */}
       {tripState === 'receipt' && (
-        <div className="fixed inset-0 z-50 flex flex-col items-center justify-end sm:justify-center bg-slate-900/90 backdrop-blur-xl p-4 sm:p-6 animate-in fade-in duration-300">
+        <div className={`fixed inset-0 z-50 flex flex-col items-center justify-end sm:justify-center bg-slate-900/90 backdrop-blur-xl p-4 sm:p-6 transition-opacity duration-400 ease-in-out ${isClosing ? 'opacity-0' : 'animate-in fade-in'}`}>
           
-          <div className="bg-white rounded-t-3xl sm:rounded-3xl w-full max-w-md overflow-hidden shadow-2xl shadow-black/50 animate-in slide-in-from-bottom-12 duration-500 relative">
+          <div className={`bg-white rounded-t-3xl sm:rounded-3xl w-full max-w-md shadow-2xl shadow-black/50 relative flex flex-col max-h-[95vh] sm:max-h-[90vh] overflow-hidden transition-transform duration-400 ease-in-out ${isClosing ? 'translate-y-full opacity-0' : 'animate-in slide-in-from-bottom-12'}`}>
             
             {/* Vízjel / Háttér grafika */}
-            <div className="absolute inset-0 pointer-events-none overflow-hidden opacity-[0.02] flex items-center justify-center">
+            <div className="absolute inset-0 pointer-events-none overflow-hidden opacity-[0.02] flex items-center justify-center z-0">
               <ShieldCheck className="w-96 h-96 transform -rotate-12" />
             </div>
 
             {/* Header - Official look */}
-            <div className="bg-[#0B1A2A] px-6 py-5 flex items-center justify-between relative overflow-hidden">
+            <div className="bg-[#0B1A2A] px-6 py-5 flex items-center justify-between relative overflow-hidden shrink-0 z-10">
               <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-[#C9A962] via-yellow-200 to-[#C9A962]"></div>
               <div>
                 <h3 className="text-[#C9A962] font-black tracking-widest uppercase text-sm">Pannon Transfer</h3>
                 <p className="text-slate-300 text-[8px] uppercase tracking-[0.2em] mt-1 opacity-80">E-Számla / Hitelesített Bizonylat</p>
               </div>
-              <div className="w-12 h-12 rounded-full border border-[#C9A962]/40 flex items-center justify-center bg-gradient-to-br from-[#1A2E44] to-[#0B1A2A] shadow-inner relative group cursor-help">
-                <ShieldCheck className="w-5 h-5 text-[#C9A962]" />
-                <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-[#0B1A2A]"></div>
-              </div>
+              <button 
+                onClick={handleReset}
+                className="w-10 h-10 rounded-full flex items-center justify-center bg-white/5 hover:bg-white/10 transition-colors"
+              >
+                <X className="w-6 h-6 text-white opacity-80" />
+              </button>
             </div>
             
-            {/* Body */}
-            <div className="px-6 py-7 relative z-10">
+            {/* Body (Görgethető) */}
+            <div className="px-6 py-7 relative z-10 overflow-y-auto flex-1 custom-scrollbar">
               
               {/* Title & ID */}
               <div className="flex justify-between items-start mb-6">
@@ -355,7 +364,7 @@ export default function DashboardPage() {
             {/* Footer action */}
             <button 
               onClick={handleReset} 
-              className="w-full bg-[#0B1A2A] text-white font-bold py-6 hover:bg-[#1A2E44] transition-colors uppercase tracking-[0.25em] text-[11px] flex items-center justify-center gap-3 relative overflow-hidden group"
+              className="shrink-0 w-full bg-[#0B1A2A] text-white font-bold py-6 hover:bg-[#1A2E44] transition-colors uppercase tracking-[0.25em] text-[11px] flex items-center justify-center gap-3 relative overflow-hidden group z-20"
             >
               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-100%] group-hover:animate-[shimmer_1.5s_infinite]"></div>
               Hitelesített Nyugta Bezárása
