@@ -183,111 +183,171 @@ export default function DashboardPage() {
       {/* GENERATING ÁLLAPOT (Overlay) */}
       {tripState === 'generating' && (
         <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#0B1A2A] p-6 animate-in fade-in duration-300">
-          <Receipt className="w-16 h-16 text-[#C9A962] animate-pulse mb-8" />
-          <h2 className="text-white text-xl font-black tracking-widest uppercase mb-3">E-Nyugta Generálása</h2>
-          <p className="text-slate-400 text-sm font-medium text-center">Titkosított adatkapcsolat létrehozása és hitelesítés folyamatban...</p>
-          <div className="w-64 h-1.5 bg-slate-800/50 rounded-full mt-10 overflow-hidden relative">
-            <div className="absolute top-0 left-0 h-full bg-[#C9A962] w-1/3 rounded-full animate-[pulse_1s_ease-in-out_infinite]"></div>
+          <div className="relative mb-8">
+            <div className="absolute inset-0 bg-[#C9A962] rounded-full blur-xl opacity-20 animate-pulse"></div>
+            <ShieldCheck className="w-20 h-20 text-[#C9A962] relative z-10 animate-pulse" />
+          </div>
+          <h2 className="text-white text-xl font-black tracking-widest uppercase mb-3 text-center">NAV Hitelesítés Folyamatban</h2>
+          <p className="text-slate-400 text-xs font-medium text-center max-w-xs leading-relaxed">
+            Titkosított adatkapcsolat létrehozása a Számlázz.hu rendszerével és a Nemzeti Adó- és Vámhivatal szervereivel...
+          </p>
+          <div className="w-64 h-1 bg-slate-800/80 rounded-full mt-12 overflow-hidden relative">
+            <div className="absolute top-0 left-0 h-full bg-gradient-to-r from-[#C9A962] via-yellow-200 to-[#C9A962] w-1/3 rounded-full animate-[pulse_1.5s_ease-in-out_infinite] shadow-[0_0_10px_rgba(201,169,98,0.5)]"></div>
+          </div>
+          <div className="mt-8 flex items-center gap-4 text-[10px] text-slate-500 font-mono">
+            <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span> TLS 1.3</span>
+            <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span> NAV Online 3.0</span>
           </div>
         </div>
       )}
 
       {/* E-NYUGTA ÁLLAPOT (Modal) */}
       {tripState === 'receipt' && (
-        <div className="fixed inset-0 z-50 flex flex-col items-center justify-end sm:justify-center bg-slate-900/80 backdrop-blur-md p-4 sm:p-6 animate-in fade-in duration-300">
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-end sm:justify-center bg-slate-900/90 backdrop-blur-xl p-4 sm:p-6 animate-in fade-in duration-300">
           
-          <div className="bg-white rounded-t-3xl sm:rounded-3xl w-full max-w-md overflow-hidden shadow-2xl animate-in slide-in-from-bottom-12 duration-500 border border-slate-200">
+          <div className="bg-white rounded-t-3xl sm:rounded-3xl w-full max-w-md overflow-hidden shadow-2xl shadow-black/50 animate-in slide-in-from-bottom-12 duration-500 relative">
             
+            {/* Vízjel / Háttér grafika */}
+            <div className="absolute inset-0 pointer-events-none overflow-hidden opacity-[0.02] flex items-center justify-center">
+              <ShieldCheck className="w-96 h-96 transform -rotate-12" />
+            </div>
+
             {/* Header - Official look */}
             <div className="bg-[#0B1A2A] px-6 py-5 flex items-center justify-between relative overflow-hidden">
-              <div className="absolute top-0 left-0 w-full h-1 bg-[#C9A962]"></div>
+              <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-[#C9A962] via-yellow-200 to-[#C9A962]"></div>
               <div>
                 <h3 className="text-[#C9A962] font-black tracking-widest uppercase text-sm">Pannon Transfer</h3>
-                <p className="text-slate-300 text-[9px] uppercase tracking-widest mt-0.5">Hitelesített E-Bizonylat</p>
+                <p className="text-slate-300 text-[8px] uppercase tracking-[0.2em] mt-1 opacity-80">E-Számla / Hitelesített Bizonylat</p>
               </div>
-              <div className="w-10 h-10 rounded-full border border-[#C9A962]/30 flex items-center justify-center bg-[#1A2E44] shadow-inner">
+              <div className="w-12 h-12 rounded-full border border-[#C9A962]/40 flex items-center justify-center bg-gradient-to-br from-[#1A2E44] to-[#0B1A2A] shadow-inner relative group cursor-help">
                 <ShieldCheck className="w-5 h-5 text-[#C9A962]" />
+                <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-[#0B1A2A]"></div>
               </div>
             </div>
             
             {/* Body */}
-            <div className="px-6 py-6">
+            <div className="px-6 py-7 relative z-10">
               
               {/* Title & ID */}
-              <div className="text-center mb-6">
-                <h2 className="text-xl font-black text-[#0B1A2A] uppercase tracking-widest mb-2">E-Nyugta</h2>
-                <p className="text-xs text-slate-600 font-mono bg-slate-100 border border-slate-200 inline-block px-2.5 py-1 rounded">Bizonylatszám: {MOCK_TRIP.id}-01</p>
+              <div className="flex justify-between items-start mb-6">
+                <div>
+                  <h2 className="text-2xl font-black text-[#0B1A2A] uppercase tracking-tighter mb-1">E-Nyugta</h2>
+                  <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Példány: Eredeti (1/1)</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mb-1">Bizonylatszám</p>
+                  <p className="text-xs text-[#0B1A2A] font-mono bg-slate-100 border border-slate-200 px-2 py-1 rounded shadow-inner tracking-wider">
+                    {MOCK_TRIP.id}-01
+                  </p>
+                </div>
               </div>
 
-              {/* Official Company Data */}
-              <div className="text-[9px] text-slate-500 text-center mb-6 uppercase tracking-widest border-b border-slate-100 pb-5 space-y-1">
-                <p className="font-bold text-slate-700">Szolgáltató: Pannon Guard Zrt.</p>
-                <p>Adószám: 12345678-2-41</p>
-                <p>4025 Debrecen, Példa utca 1.</p>
+              {/* Szolgáltató & Vevő rács */}
+              <div className="grid grid-cols-2 gap-4 mb-6 border-y border-slate-100 py-4">
+                {/* Szolgáltató */}
+                <div>
+                  <p className="text-[8px] text-slate-400 font-black uppercase tracking-widest mb-2">Szolgáltató</p>
+                  <div className="space-y-1 text-[10px] text-slate-600 font-medium">
+                    <p className="font-black text-[#0B1A2A] text-xs">Pannon Guard Zrt.</p>
+                    <p>4025 Debrecen, Példa u. 1.</p>
+                    <p>Adószám: <span className="font-mono text-[#0B1A2A]">12345678-2-41</span></p>
+                    <p>Cg.: <span className="font-mono text-[#0B1A2A]">09-10-000000</span></p>
+                  </div>
+                </div>
+                {/* Vevő */}
+                <div>
+                  <p className="text-[8px] text-slate-400 font-black uppercase tracking-widest mb-2">Vevő (Utas)</p>
+                  <div className="space-y-1 text-[10px] text-slate-600 font-medium">
+                    <p className="font-black text-[#0B1A2A] text-xs">{MOCK_TRIP.company}</p>
+                    <p>Cím: Rendszerből importálva</p>
+                    <p>Utas: <span className="text-[#0B1A2A] font-bold">{MOCK_TRIP.passenger}</span></p>
+                  </div>
+                </div>
               </div>
 
               {/* Trip Data Grid */}
-              <div className="space-y-3 mb-6 text-xs border-b border-slate-100 pb-5">
+              <div className="space-y-3 mb-6 text-xs bg-slate-50 rounded-xl p-4 border border-slate-100">
                 <div className="flex justify-between items-center">
-                  <span className="text-slate-400 font-bold uppercase tracking-widest text-[9px]">Kiállítás dátuma</span>
-                  <span className="font-mono text-[#0B1A2A] font-semibold">{MOCK_TRIP.date} {MOCK_TRIP.time}:42</span>
+                  <span className="text-slate-500 font-bold text-[10px]">Teljesítés dátuma</span>
+                  <span className="font-mono text-[#0B1A2A] font-bold">{MOCK_TRIP.date}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-slate-400 font-bold uppercase tracking-widest text-[9px]">Gépjárművezető</span>
-                  <span className="text-[#0B1A2A] font-semibold">{user?.name || "Kovács Gábor"} (ID: PT-402)</span>
+                  <span className="text-slate-500 font-bold text-[10px]">Kiállítás dátuma</span>
+                  <span className="font-mono text-[#0B1A2A] font-bold">{MOCK_TRIP.date} {MOCK_TRIP.time}:42</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-slate-400 font-bold uppercase tracking-widest text-[9px]">Utas neve</span>
-                  <span className="text-[#0B1A2A] font-semibold">{MOCK_TRIP.passenger}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-slate-400 font-bold uppercase tracking-widest text-[9px]">Partnercég</span>
-                  <span className="text-[#0B1A2A] font-semibold">{MOCK_TRIP.company}</span>
+                  <span className="text-slate-500 font-bold text-[10px]">Gépjárművezető (ID)</span>
+                  <span className="text-[#0B1A2A] font-bold">{user?.name || "Kovács Gábor"} (PT-402)</span>
                 </div>
               </div>
 
-              {/* Route */}
-              <div className="bg-slate-50 rounded-xl p-4 mb-6 border border-slate-100">
-                <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mb-3">Teljesített Útvonal</p>
-                <div className="flex flex-col gap-2 text-xs font-semibold text-[#0B1A2A]">
-                  <p className="flex items-center gap-3"><span className="w-1.5 h-1.5 rounded-full bg-slate-300"></span> {MOCK_TRIP.from}</p>
-                  <div className="w-0.5 h-3 bg-slate-200 ml-[2.5px] -my-1"></div>
-                  <p className="flex items-center gap-3"><span className="w-1.5 h-1.5 rounded-full bg-blue-500 shadow-sm shadow-blue-500/50"></span> {MOCK_TRIP.to}</p>
-                </div>
+              {/* Tétel táblázat */}
+              <div className="mb-6">
+                <table className="w-full text-left text-[10px]">
+                  <thead>
+                    <tr className="border-b-2 border-[#0B1A2A] text-slate-400 uppercase tracking-widest">
+                      <th className="pb-2 font-black w-1/2">Megnevezés</th>
+                      <th className="pb-2 font-black text-right">ÁFA</th>
+                      <th className="pb-2 font-black text-right">Bruttó (Ft)</th>
+                    </tr>
+                  </thead>
+                  <tbody className="text-[#0B1A2A] font-semibold">
+                    <tr className="border-b border-slate-100">
+                      <td className="py-3 pr-2">
+                        Személyszállítás (Executive)
+                        <div className="text-[9px] text-slate-400 mt-1 font-normal leading-tight">
+                          {MOCK_TRIP.from} → {MOCK_TRIP.to}
+                        </div>
+                      </td>
+                      <td className="py-3 text-right">27%</td>
+                      <td className="py-3 text-right font-mono text-xs">{MOCK_TRIP.price.toLocaleString('hu-HU')}</td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
 
-              {/* Financials */}
-              <div className="space-y-2 mb-8">
-                 <div className="flex justify-between text-xs">
-                    <span className="text-slate-500">Nettó szolgáltatási díj</span>
-                    <span className="font-mono text-[#0B1A2A]">{(MOCK_TRIP.price * 0.73).toLocaleString('hu-HU', {maximumFractionDigits:0})} Ft</span>
+              {/* Financials Summary */}
+              <div className="flex flex-col items-end mb-8 space-y-1">
+                 <div className="flex justify-between w-full max-w-[200px] text-[10px]">
+                    <span className="text-slate-500 font-bold uppercase tracking-widest">Nettó összesen:</span>
+                    <span className="font-mono text-[#0B1A2A] font-bold">{(MOCK_TRIP.price * 0.73).toLocaleString('hu-HU', {maximumFractionDigits:0})} Ft</span>
                  </div>
-                 <div className="flex justify-between text-xs">
-                    <span className="text-slate-500">ÁFA (27%)</span>
-                    <span className="font-mono text-[#0B1A2A]">{(MOCK_TRIP.price * 0.27).toLocaleString('hu-HU', {maximumFractionDigits:0})} Ft</span>
+                 <div className="flex justify-between w-full max-w-[200px] text-[10px]">
+                    <span className="text-slate-500 font-bold uppercase tracking-widest">ÁFA (27%) összesen:</span>
+                    <span className="font-mono text-[#0B1A2A] font-bold">{(MOCK_TRIP.price * 0.27).toLocaleString('hu-HU', {maximumFractionDigits:0})} Ft</span>
                  </div>
-                 <div className="flex justify-between items-end mt-4 pt-4 border-t-[3px] border-[#0B1A2A]">
+                 <div className="flex justify-between w-full max-w-[250px] items-end mt-2 pt-3 border-t-[3px] border-[#0B1A2A]">
                     <div>
-                      <span className="block text-[#0B1A2A] font-black uppercase tracking-widest text-[10px] mb-1">Végösszeg</span>
-                      <span className="block text-[9px] text-slate-400 font-bold uppercase tracking-widest">Fizetési mód: {MOCK_TRIP.paymentMethod}</span>
+                      <span className="block text-[#0B1A2A] font-black uppercase tracking-widest text-[11px] mb-0.5">Fizetendő Végösszeg</span>
+                      <span className="block text-[9px] text-slate-500 font-bold uppercase tracking-widest">Fizetési mód: {MOCK_TRIP.paymentMethod}</span>
                     </div>
-                    <span className="font-mono text-2xl font-black text-[#0B1A2A]">{MOCK_TRIP.price.toLocaleString('hu-HU')} Ft</span>
+                    <span className="font-mono text-3xl font-black text-[#0B1A2A] tracking-tighter">{MOCK_TRIP.price.toLocaleString('hu-HU')} <span className="text-lg">Ft</span></span>
                  </div>
               </div>
 
-              {/* Barcode */}
-              <div className="flex flex-col items-center justify-center opacity-80">
-                <div className="flex gap-[2px] h-10 mb-2 w-full justify-center">
-                   {Array.from({ length: 45 }).map((_, i) => (
-                     <div key={i} className={`bg-[#0B1A2A] ${[1,2,3][Math.floor(Math.random()*3)] === 1 ? 'w-1.5' : 'w-[2px]'}`}></div>
+              {/* Barcode & Hash */}
+              <div className="flex flex-col items-center justify-center p-4 bg-slate-50 rounded-xl border border-slate-100">
+                <div className="flex gap-[2px] h-12 mb-3 w-full justify-center opacity-80">
+                   {Array.from({ length: 50 }).map((_, i) => (
+                     <div key={i} className={`bg-[#0B1A2A] ${[1,2,3,4][Math.floor(Math.random()*4)] === 1 ? 'w-2' : [1,2][Math.floor(Math.random()*2)] === 1 ? 'w-1' : 'w-[2px]'}`}></div>
                    ))}
                 </div>
-                <p className="text-[10px] text-[#0B1A2A] font-mono tracking-[0.3em]">0100 2342 9923 1123</p>
+                <div className="text-center space-y-1">
+                  <p className="text-[11px] text-[#0B1A2A] font-mono tracking-[0.4em] font-bold">8942 0100 2342 9923 1123</p>
+                  <p className="text-[7px] text-slate-400 font-mono tracking-widest break-all uppercase">
+                    HASH: 9F86D081884C7D659A2FEAA0C55AD015A3BF4F1B2B0B822CD15D6C15B0F00A08
+                  </p>
+                </div>
               </div>
               
-              <div className="mt-6 text-center">
-                <p className="text-[8px] text-slate-400 uppercase tracking-[0.1em] leading-relaxed max-w-[280px] mx-auto">
-                  Ez a dokumentum elektronikusan hitelesített. <br/>A bizonylat megfelel a 2007. évi CXXVII. Áfa tv. előírásainak.
+              <div className="mt-5 text-center flex flex-col items-center gap-2">
+                <div className="flex items-center gap-2 text-[9px] text-slate-400 font-bold uppercase tracking-widest">
+                  <ShieldCheck className="w-3 h-3 text-green-500" />
+                  NAV Online Számla 3.0 Hitelesített
+                </div>
+                <p className="text-[8px] text-slate-400 uppercase tracking-[0.1em] leading-relaxed max-w-[300px]">
+                  A bizonylat a Számlázz.hu rendszerével készült. Megfelel a 2007. évi CXXVII. Áfa tv. és a 114/2007. (XII. 29.) GKM rendelet előírásainak. 
+                  A bizonylat kinyomtatva és elektronikusan is hiteles.
                 </p>
               </div>
             </div>
@@ -295,10 +355,11 @@ export default function DashboardPage() {
             {/* Footer action */}
             <button 
               onClick={handleReset} 
-              className="w-full bg-[#0B1A2A] text-white font-bold py-5 hover:bg-[#1A2E44] transition-colors uppercase tracking-[0.2em] text-[10px] flex items-center justify-center gap-2"
+              className="w-full bg-[#0B1A2A] text-white font-bold py-6 hover:bg-[#1A2E44] transition-colors uppercase tracking-[0.25em] text-[11px] flex items-center justify-center gap-3 relative overflow-hidden group"
             >
-              Nyugta Bezárása
-              <ArrowRight className="w-3 h-3 opacity-50" />
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-100%] group-hover:animate-[shimmer_1.5s_infinite]"></div>
+              Hitelesített Nyugta Bezárása
+              <ArrowRight className="w-4 h-4 opacity-50 group-hover:translate-x-1 transition-transform" />
             </button>
           </div>
         </div>
