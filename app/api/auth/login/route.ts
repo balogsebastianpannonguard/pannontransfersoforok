@@ -51,7 +51,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Helytelen e-mail cím vagy jelszó!" }, { status: 401 });
     }
 
-    if (user.status !== "active") {
+    if (user.status !== "active" && !user.isActivated) {
       return NextResponse.json({ error: "A fiók nem aktív vagy felfüggesztett!" }, { status: 403 });
     }
 
@@ -60,7 +60,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Nincs jogosultsága a Sofőr Modulhoz!" }, { status: 403 });
     }
 
-    const isValidPassword = await bcrypt.compare(password, user.passwordHash);
+    const hashToCompare = user.passwordHash || user.hashedPassword;
+    if (!hashToCompare) {
+      return NextResponse.json({ error: "Nincs jelszó beállítva!" }, { status: 401 });
+    }
+
+    const isValidPassword = await bcrypt.compare(password, hashToCompare);
     if (!isValidPassword) {
       return NextResponse.json({ error: "Helytelen e-mail cím vagy jelszó!" }, { status: 401 });
     }

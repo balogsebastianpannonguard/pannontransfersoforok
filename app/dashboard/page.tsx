@@ -80,55 +80,90 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col">
+    <div className="min-h-screen bg-slate-50 flex flex-col relative overflow-hidden">
+      {/* Sötétkék fejléc háttér */}
+      <div className="absolute top-0 left-0 w-full h-[30vh] bg-[#0B1A2A]"></div>
+      
       {/* Header */}
-      <header className="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between shadow-sm sticky top-0 z-10">
-        <div>
-          <h1 className="text-xl font-bold text-[#0B1A2A]">Szia, {user?.name.split(" ")[0] || "Sofőr"}!</h1>
-          <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mt-0.5">
-            Pannon Transfer • Sofőr Modul
-          </p>
+      <header className="px-6 pt-12 pb-6 flex items-center justify-between relative z-10">
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center text-[#C9A962] font-bold text-xl shadow-inner backdrop-blur-sm">
+            {user?.name ? user.name.charAt(0).toUpperCase() : (user?.email?.charAt(0).toUpperCase() || "S")}
+          </div>
+          <div>
+            <h1 className="text-[22px] font-black text-white tracking-tight">Szia, {user?.name?.split(" ")[0] || user?.email?.split("@")[0] || "Sofőr"}!</h1>
+            <p className="text-[10px] font-black text-[#C9A962] uppercase tracking-[0.2em] mt-0.5">
+              Pannon Transfer • Sofőr Modul
+            </p>
+          </div>
         </div>
         <button
           onClick={() => {
             document.cookie = "driver_auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;";
             router.push("/");
           }}
-          className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-red-50 hover:text-red-600 transition"
+          className="w-12 h-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white/70 hover:bg-white/10 hover:text-white transition active:scale-95 backdrop-blur-sm"
         >
           <LogOut className="w-5 h-5 ml-0.5" />
         </button>
       </header>
 
       {/* Main Content */}
-      <div className="flex-1 p-4 pb-8 flex flex-col max-w-lg mx-auto w-full">
+      <div className="flex-1 p-6 flex flex-col max-w-lg mx-auto w-full relative z-10">
         
         {/* IDLE ÁLLAPOT */}
         {tripState === 'idle' && (
-          <div className="flex-1 flex items-center justify-center">
-            <div className="text-center w-full bg-white rounded-3xl p-8 shadow-xl shadow-slate-900/[0.04] border border-slate-100">
-              <h2 className="text-2xl font-bold text-[#0B1A2A] mb-2">Irányítópult</h2>
-              <p className="text-slate-500 font-medium mb-8">
-                Jelenleg nincs aktív fuvarod.
+          <div className="flex-1 flex flex-col">
+            <div className="w-full bg-white rounded-[2rem] p-8 shadow-2xl shadow-slate-900/10 border border-slate-100 flex flex-col items-center text-center mt-4">
+              
+              <div className="w-20 h-20 bg-slate-50 rounded-[1.5rem] flex items-center justify-center mb-6 border border-slate-100 shadow-sm rotate-3">
+                <div className="w-16 h-16 bg-[#0B1A2A] rounded-2xl flex items-center justify-center shadow-lg shadow-[#0B1A2A]/20 -rotate-3">
+                  <MapPin className="w-7 h-7 text-[#C9A962]" />
+                </div>
+              </div>
+              
+              <h2 className="text-2xl font-black text-[#0B1A2A] mb-3 tracking-tight">Irányítópult</h2>
+              <p className="text-slate-500 text-sm font-medium mb-8 leading-relaxed px-2">
+                Jelenleg nincs aktív fuvarod a rendszerben. Készen állsz az indulásra?
               </p>
+              
               <button 
                 onClick={handleStartSim}
-                className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-2xl py-4 font-bold text-lg shadow-lg shadow-blue-500/25 active:scale-95 transition-all flex items-center justify-center gap-2"
+                className="w-full bg-[#0B1A2A] text-white rounded-2xl py-4.5 font-bold text-[15px] shadow-xl shadow-[#0B1A2A]/20 active:scale-[0.98] transition-all flex items-center justify-center gap-3 group h-[60px]"
               >
-                <MapPin className="w-5 h-5" />
+                <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center group-hover:bg-white/20 transition-colors">
+                  <MapPin className="w-4 h-4 text-[#C9A962]" />
+                </div>
                 Új Fuvar Szimulálása
               </button>
+            </div>
+            
+            {/* Státusz kártyák (opcionális extra design elem mobilon) */}
+            <div className="grid grid-cols-2 gap-4 mt-6">
+              <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Mai fuvarok</p>
+                <p className="text-xl font-black text-[#0B1A2A]">0 <span className="text-sm font-bold text-slate-400">db</span></p>
+              </div>
+              <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Készenlét</p>
+                <div className="flex items-center gap-2 mt-1">
+                  <div className="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-pulse"></div>
+                  <p className="text-sm font-bold text-[#0B1A2A]">Aktív</p>
+                </div>
+              </div>
             </div>
           </div>
         )}
 
         {/* ACTIVE ÁLLAPOT (Érkezett fuvar) */}
         {tripState === 'active' && (
-          <div className="animate-in slide-in-from-bottom-8 fade-in duration-500 space-y-6 flex-1 pt-4">
+          <div className="animate-in slide-in-from-bottom-8 fade-in duration-500 space-y-6 flex-1 mt-2">
             
-            <div className="bg-white rounded-[2.5rem] p-6 shadow-2xl shadow-slate-200/50 border border-slate-100">
+            <div className="bg-white rounded-[2.5rem] p-6 shadow-2xl shadow-slate-900/10 border border-slate-100 relative overflow-hidden">
               
-              <div className="flex items-center justify-between mb-8">
+              <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-blue-500 to-indigo-500"></div>
+
+              <div className="flex items-center justify-between mb-8 mt-2">
                 <span className="bg-blue-50 text-blue-600 border border-blue-100 text-[10px] font-black px-3 py-1.5 rounded-full uppercase tracking-widest flex items-center gap-1.5">
                   <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
                   Folyamatban
@@ -175,10 +210,10 @@ export default function DashboardPage() {
               {/* Gomb */}
               <button 
                 onClick={handleComplete}
-                className="w-full bg-gradient-to-r from-[#0B1A2A] to-[#1A2E44] text-white rounded-2xl py-4 font-bold text-lg shadow-xl shadow-slate-900/20 active:scale-95 transition-all flex items-center justify-center gap-2"
+                className="w-full bg-[#0B1A2A] text-white rounded-2xl py-4 font-bold text-lg shadow-xl shadow-[#0B1A2A]/20 active:scale-95 transition-all flex items-center justify-center gap-2 h-[60px]"
               >
-                Út Véglegesítése
-                <ChevronRight className="w-5 h-5 opacity-70" />
+                <span className="text-[#C9A962]">Út Véglegesítése</span>
+                <ChevronRight className="w-5 h-5 text-[#C9A962] opacity-70" />
               </button>
 
             </div>
