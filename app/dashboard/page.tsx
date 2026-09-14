@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
+  Award,
   BellRing,
   CalendarDays,
   CarFront,
@@ -14,6 +15,7 @@ import {
   CreditCard,
   Download,
   FileCheck2,
+  Lock,
   LogOut,
   MapPin,
   Menu,
@@ -24,7 +26,9 @@ import {
   Stamp,
   TicketCheck,
   User2,
+  Wifi,
   X,
+  Zap,
 } from "lucide-react";
 import { WaybillsPanel } from "./waybills-panel";
 import { HolidaysPanel } from "./holidays-panel";
@@ -125,6 +129,7 @@ function TripCard({
   onOpenReceipt,
   acknowledgingId,
   finalizingId,
+  isNew,
 }: {
   trip: DriverTrip;
   onAcknowledge: (id: string) => void;
@@ -132,12 +137,24 @@ function TripCard({
   onOpenReceipt: (trip: DriverTrip) => void;
   acknowledgingId: string | null;
   finalizingId: string | null;
+  isNew: boolean;
 }) {
   const isExecutive = trip.transferType === "executive";
   const initials = trip.travelerName.split(" ").slice(0, 2).map((n) => n[0]).join("");
   const [isExpanded, setIsExpanded] = useState(!trip.driverAcknowledged);
   const isFinalized = trip.status === "completed" && !!trip.receipt;
   const isPanelOpen = !isFinalized && isExpanded;
+
+  // Yellow glow pulse: show on new/unacknowledged, animate out on acknowledge
+  const [showGlow, setShowGlow] = useState(!trip.driverAcknowledged);
+  useEffect(() => {
+    if (trip.driverAcknowledged) {
+      const t = setTimeout(() => setShowGlow(false), 800);
+      return () => clearTimeout(t);
+    } else {
+      setShowGlow(true);
+    }
+  }, [trip.driverAcknowledged]);
 
   useEffect(() => {
     if (trip.driverAcknowledged && !isFinalized) {
@@ -148,14 +165,29 @@ function TripCard({
 
   return (
     <section
-      className={`relative bg-white rounded-3xl shadow-sm border overflow-hidden transition-all duration-500 ${
+      className={`relative rounded-3xl shadow-sm border overflow-hidden transition-all duration-500 ${
         !trip.driverAcknowledged
-          ? "border-blue-300 shadow-blue-100/50"
+          ? "border-amber-400/60 shadow-amber-200/40"
           : isFinalized
             ? "border-emerald-200 shadow-none bg-slate-50/50 opacity-75 grayscale-[0.2] scale-[0.98]"
-            : "border-slate-100"
+            : "border-slate-100 bg-white"
       }`}
+      style={!trip.driverAcknowledged ? { background: 'white' } : {}}
     >
+      {/* === YELLOW NEW TRIP GLOW === */}
+      {showGlow && (
+        <div
+          className="absolute inset-0 rounded-3xl pointer-events-none"
+          style={{
+            boxShadow: trip.driverAcknowledged
+              ? '0 0 0 0 rgba(251,191,36,0)'
+              : '0 0 0 3px rgba(251,191,36,0.7), 0 0 30px 0 rgba(251,191,36,0.25)',
+            transition: 'box-shadow 0.8s ease',
+            animation: !trip.driverAcknowledged ? 'newTripGlow 1.8s ease-in-out infinite' : 'none',
+          }}
+        />
+      )}
+
       {/* Background Watermark for Finalized */}
       {isFinalized && (
         <div className="absolute inset-0 pointer-events-none flex items-center justify-center overflow-hidden opacity-5">
@@ -163,10 +195,18 @@ function TripCard({
         </div>
       )}
 
-      {/* PULSATING BAR FOR NEW TRIPS */}
+      {/* PULSATING BAR FOR NEW TRIPS - now amber/yellow */}
       {!trip.driverAcknowledged && (
-        <div className="bg-blue-500 text-white text-center py-2 text-[11px] font-black tracking-widest uppercase animate-pulse">
-          Új fuvar kiosztva - Kérjük, igazold vissza!
+        <div
+          className="text-white text-center py-2 text-[11px] font-black tracking-widest uppercase flex items-center justify-center gap-2"
+          style={{
+            background: 'linear-gradient(90deg, #b45309, #d97706, #f59e0b, #d97706, #b45309)',
+            backgroundSize: '300% 100%',
+            animation: 'borderSweep 2s linear infinite',
+          }}
+        >
+          <BellRing className="w-3.5 h-3.5 animate-pulse" />
+          {isNew ? 'Új fuvar érkezett — Kérjük, igazold vissza!' : 'Visszaigazolásra vár!'}
         </div>
       )}
       {isFinalized && (
@@ -408,20 +448,39 @@ function TripCard({
                         onFinalize(trip._id);
                       }}
                       disabled={finalizingId === trip._id}
-                      className="w-full group relative overflow-hidden flex items-center justify-center gap-2.5 bg-gradient-to-r from-blue-500 via-indigo-500 to-blue-600 hover:brightness-110 text-white py-4 rounded-xl text-[11px] font-black tracking-widest uppercase transition shadow-[0_18px_40px_-20px_rgba(59,130,246,0.9)] disabled:opacity-80"
+                      className="w-full group relative overflow-hidden flex items-center justify-center gap-3 py-5 rounded-2xl text-[11px] font-black tracking-widest uppercase transition disabled:opacity-80"
+                      style={{
+                        background: 'linear-gradient(135deg, #064e3b 0%, #065f46 30%, #059669 60%, #10b981 100%)',
+                        boxShadow: '0 20px 60px -15px rgba(5, 150, 105, 0.7), 0 0 0 1px rgba(16,185,129,0.3) inset',
+                      }}
                     >
+                      {/* Shimmer overlay */}
+                      <div
+                        className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+                        style={{
+                          background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.12) 50%, transparent 100%)',
+                          backgroundSize: '200% 100%',
+                          animation: 'shimmer 1.5s infinite',
+                        }}
+                      />
+                      {/* Animated border glow */}
+                      <div className="absolute inset-0 rounded-2xl opacity-60" style={{ background: 'linear-gradient(135deg, rgba(16,185,129,0.3), transparent, rgba(52,211,153,0.3))', backgroundSize: '400% 400%', animation: 'backgroundShift 3s ease infinite' }} />
                       {finalizingId === trip._id ? (
-                        <>
-                          <div className="flex items-center gap-3">
-                            <RefreshCw className="w-4 h-4 animate-spin" />
-                            <span>Hitelesítés folyamatban…</span>
-                          </div>
-                        </>
+                        <div className="relative flex items-center gap-3 text-white">
+                          <RefreshCw className="w-5 h-5 animate-spin" />
+                          <span>NAV hitelesítés folyamatban…</span>
+                        </div>
                       ) : (
-                        <>
-                          <FileCheck2 className="w-4 h-4 text-yellow-200 group-hover:scale-110 transition" />
-                          <span>Fuvar lezárása · Hiteles e-Nyugta kiállítása</span>
-                        </>
+                        <div className="relative flex items-center gap-3 text-white">
+                          <div className="w-8 h-8 rounded-xl bg-white/15 border border-white/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+                            <FileCheck2 className="w-4 h-4 text-emerald-200" />
+                          </div>
+                          <div className="text-left">
+                            <div className="text-[12px] font-black tracking-widest">Fuvar lezárása · e-Nyugta kiállítása</div>
+                            <div className="text-[9px] font-bold text-emerald-200 tracking-widest uppercase">NAV-hitelesített · Digitálisan aláírt · Azonnal érvényes</div>
+                          </div>
+                          <Zap className="w-4 h-4 text-yellow-300 animate-pulse ml-1" />
+                        </div>
                       )}
                     </button>
                   </div>
@@ -450,6 +509,88 @@ function TripCard({
   );
 }
 
+// === CONFETTI COMPONENT ===
+const CONFETTI_COLORS = ['#10b981', '#34d399', '#059669', '#C9A962', '#fbbf24', '#a78bfa', '#60a5fa', '#f472b6'];
+const CONFETTI_SHAPES = ['square', 'circle', 'triangle'];
+
+function ConfettiCannon() {
+  const pieces = Array.from({ length: 60 }, (_, i) => ({
+    id: i,
+    x: Math.random() * 100,
+    delay: Math.random() * 1.5,
+    duration: 2 + Math.random() * 2,
+    color: CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)],
+    shape: CONFETTI_SHAPES[Math.floor(Math.random() * CONFETTI_SHAPES.length)],
+    size: 6 + Math.random() * 10,
+    rotation: Math.random() * 360,
+  }));
+
+  return (
+    <div className="fixed inset-0 z-[60] pointer-events-none overflow-hidden">
+      {pieces.map((p) => (
+        <div
+          key={p.id}
+          style={{
+            position: 'absolute',
+            left: `${p.x}%`,
+            top: '-20px',
+            width: p.size,
+            height: p.shape === 'triangle' ? 0 : p.size,
+            backgroundColor: p.shape !== 'triangle' ? p.color : 'transparent',
+            borderRadius: p.shape === 'circle' ? '50%' : p.shape === 'square' ? '2px' : 0,
+            borderLeft: p.shape === 'triangle' ? `${p.size / 2}px solid transparent` : 'none',
+            borderRight: p.shape === 'triangle' ? `${p.size / 2}px solid transparent` : 'none',
+            borderBottom: p.shape === 'triangle' ? `${p.size}px solid ${p.color}` : 'none',
+            animation: `confettiFall ${p.duration}s ease-in ${p.delay}s forwards`,
+            transform: `rotate(${p.rotation}deg)`,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+// === QR CODE SIMULATION ===
+function QRCodeSimulated({ value }: { value: string }) {
+  const size = 7;
+  // Deterministic pattern from value hash
+  const hash = value.split('').reduce((acc, c) => (acc * 31 + c.charCodeAt(0)) | 0, 0);
+  const cells = Array.from({ length: size * size }, (_, i) => {
+    const row = Math.floor(i / size);
+    const col = i % size;
+    // Always-on corner markers
+    const isCorner = (row < 2 && col < 2) || (row < 2 && col >= size - 2) || (row >= size - 2 && col < 2);
+    const seed = (hash ^ (i * 2654435761)) >>> 0;
+    return isCorner || (seed % 3 !== 0);
+  });
+
+  return (
+    <div
+      style={{
+        display: 'grid',
+        gridTemplateColumns: `repeat(${size}, 1fr)`,
+        gap: '1.5px',
+        padding: '8px',
+        background: 'white',
+        borderRadius: '8px',
+        width: '80px',
+        height: '80px',
+      }}
+    >
+      {cells.map((on, i) => (
+        <div
+          key={i}
+          style={{
+            background: on ? '#064e3b' : 'white',
+            borderRadius: '1px',
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+// === RECEIPT MODAL ===
 function ReceiptModal({
   receipt,
   onClose,
@@ -458,277 +599,480 @@ function ReceiptModal({
   onClose: () => void;
 }) {
   const { trip, receiptId, issuedAt, issuedBy } = receipt;
+  const [showConfetti, setShowConfetti] = useState(true);
+  const [stampVisible, setStampVisible] = useState(false);
+  const [bodyVisible, setBodyVisible] = useState(false);
+
+  useEffect(() => {
+    const t1 = setTimeout(() => setStampVisible(true), 400);
+    const t2 = setTimeout(() => setBodyVisible(true), 700);
+    const t3 = setTimeout(() => setShowConfetti(false), 3500);
+    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
+  }, []);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="relative w-full max-w-xl bg-white rounded-[28px] shadow-[0_30px_80px_-10px_rgba(15,23,42,0.45)] border border-slate-100 overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
-        {/* Security Header */}
-        <div className="shrink-0 relative bg-gradient-to-r from-emerald-500 via-teal-600 to-emerald-700 text-white px-6 sm:px-8 pt-7 pb-10 overflow-hidden">
-          <div className="absolute -top-20 right-[-3rem] w-64 h-64 rounded-full bg-white/10 blur-3xl" />
-          <div className="absolute bottom-[-5rem] left-[-2rem] w-56 h-56 rounded-full bg-teal-300/20 blur-3xl" />
-          <button
-            onClick={onClose}
-            className="absolute top-5 right-5 w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 flex items-center justify-center text-white transition"
+    <>
+      {showConfetti && <ConfettiCannon />}
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5" style={{ background: 'rgba(2,8,23,0.85)', backdropFilter: 'blur(16px)' }}>
+        <div
+          className="relative w-full max-w-lg flex flex-col max-h-[95vh] rounded-[32px] overflow-hidden"
+          style={{
+            background: 'linear-gradient(180deg, #020817 0%, #0a1628 100%)',
+            boxShadow: '0 40px 120px -20px rgba(16,185,129,0.5), 0 0 0 1px rgba(16,185,129,0.2)',
+            animation: 'receiptReveal 0.6s cubic-bezier(0.34,1.56,0.64,1) forwards',
+          }}
+        >
+          {/* === ANIMATED TOP BORDER === */}
+          <div className="absolute top-0 left-0 right-0 h-[2px]" style={{ background: 'linear-gradient(90deg, transparent, #10b981, #34d399, #C9A962, #10b981, transparent)', backgroundSize: '400% 100%', animation: 'borderSweep 2.5s linear infinite' }} />
+
+          {/* === HEADER === */}
+          <div className="shrink-0 relative overflow-hidden px-6 sm:px-8 pt-8 pb-6">
+            {/* Background glow */}
+            <div className="absolute inset-0 opacity-30" style={{ background: 'radial-gradient(ellipse at 50% 0%, rgba(16,185,129,0.5) 0%, transparent 70%)' }} />
+
+            <button
+              onClick={onClose}
+              className="absolute top-5 right-5 w-9 h-9 rounded-full flex items-center justify-center transition"
+              style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)' }}
+            >
+              <X className="w-4 h-4 text-white" />
+            </button>
+
+            {/* Logo + Title */}
+            <div className="relative flex items-center gap-4 mb-6">
+              <div
+                className="w-14 h-14 rounded-2xl flex items-center justify-center shrink-0"
+                style={{
+                  background: 'linear-gradient(135deg, #064e3b, #059669)',
+                  boxShadow: '0 0 0 1px rgba(16,185,129,0.4), 0 8px 24px -8px rgba(16,185,129,0.6)',
+                  animation: 'navPulse 2s ease-in-out infinite',
+                }}
+              >
+                <Award className="w-7 h-7 text-emerald-200" />
+              </div>
+              <div>
+                <p className="text-[9px] font-black tracking-[0.4em] uppercase mb-1" style={{ color: '#C9A962' }}>Pannon Transfer · NAV-Hitelesített</p>
+                <h2 className="text-2xl font-black text-white tracking-tight leading-none">e-Nyugta</h2>
+                <p className="text-[11px] font-bold text-emerald-400 mt-0.5">Hiteles · Digitálisan aláírt · Jogilag érvényes</p>
+              </div>
+            </div>
+
+            {/* Receipt ID + Timestamp bar */}
+            <div
+              className="relative rounded-2xl p-4 grid grid-cols-2 gap-4"
+              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}
+            >
+              <div>
+                <p className="text-[9px] font-black tracking-[0.25em] uppercase mb-1.5" style={{ color: '#10b981' }}>Nyugtaszám</p>
+                <p className="text-[13px] font-black text-white font-mono tracking-wider">{receiptId}</p>
+              </div>
+              <div>
+                <p className="text-[9px] font-black tracking-[0.25em] uppercase mb-1.5" style={{ color: '#10b981' }}>Kiállítva</p>
+                <p className="text-[12px] font-bold text-slate-200">{formatTimestamp(issuedAt)}</p>
+              </div>
+              {/* Shimmer overlay */}
+              <div className="absolute inset-0 rounded-2xl overflow-hidden pointer-events-none">
+                <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.04) 50%, transparent 100%)', backgroundSize: '200% 100%', animation: 'shimmer 3s infinite' }} />
+              </div>
+            </div>
+          </div>
+
+          {/* === SUCCESS STAMP BANNER === */}
+          <div
+            className="shrink-0 mx-5 mb-4 rounded-2xl overflow-hidden"
+            style={{ opacity: stampVisible ? 1 : 0, transition: 'opacity 0.4s ease', transform: stampVisible ? 'scale(1)' : 'scale(0.95)', transitionProperty: 'opacity, transform' }}
           >
-            <X className="w-4 h-4" />
-          </button>
-          <div className="relative flex items-center gap-3 mb-5">
-            <div className="w-12 h-12 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center backdrop-blur">
-              <Stamp className="w-6 h-6 text-yellow-200" />
-            </div>
-            <div>
-              <p className="text-[10px] font-black tracking-[0.3em] uppercase text-yellow-100 mb-0.5">
-                Hiteles · Digitális nyugta
-              </p>
-              <h3 className="text-2xl font-black tracking-tight">Pannon Transfer</h3>
-            </div>
-          </div>
-          <div className="relative grid grid-cols-2 gap-4">
-            <div>
-              <p className="text-[10px] font-black tracking-widest uppercase text-emerald-100 mb-1">
-                Nyugta sorszám
-              </p>
-              <p className="text-sm font-black text-white tracking-wide">{receiptId}</p>
-            </div>
-            <div>
-              <p className="text-[10px] font-black tracking-widest uppercase text-emerald-100 mb-1">
-                Kiállítva
-              </p>
-              <p className="text-sm font-black text-white tracking-wide">
-                {formatTimestamp(issuedAt)}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Success Animation Strip */}
-        <div className="shrink-0 flex items-center justify-center gap-3 py-3.5 bg-emerald-50 border-b border-emerald-100 text-emerald-700 text-[11px] font-black tracking-widest uppercase">
-          <CheckCheck className="w-4 h-4 text-emerald-600 animate-pulse" />
-          Sikeresen hitelesített fuvar · Lezárt státusz
-        </div>
-
-        {/* Receipt Body (Scrollable) */}
-        <div className="px-6 sm:px-8 py-6 space-y-6 overflow-y-auto custom-scrollbar flex-1">
-          {/* Route Section */}
-          <div className="relative">
-            <p className="text-[10px] font-black tracking-widest uppercase text-slate-400 mb-3">
-              Fuvar részletek · #{trip.bookingCode}
-            </p>
-            <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100">
-              <div className="relative pl-6 border-l-2 border-emerald-200 space-y-5">
-                <div className="relative">
-                  <div className="absolute -left-[23px] top-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_0_4px_rgba(16,185,129,0.12)]" />
-                  <p className="text-[10px] font-black tracking-widest uppercase text-emerald-600 mb-1">
-                    Indulás · {trip.pickupTime}
-                  </p>
-                  <p className="text-[15px] font-black text-slate-900 leading-snug">
-                    {trip.fromAddress}
-                  </p>
-                  <p className="text-xs font-bold text-slate-500 mt-0.5">
-                    {formatHuDateShort(trip.pickupDate)}
-                  </p>
-                </div>
-                <div className="relative">
-                  <div className="absolute -left-[23px] top-0.5 w-2.5 h-2.5 rounded-full bg-blue-500 shadow-[0_0_0_4px_rgba(59,130,246,0.12)]" />
-                  <p className="text-[10px] font-black tracking-widest uppercase text-blue-600 mb-1">
-                    Érkezés
-                  </p>
-                  <p className="text-[15px] font-black text-slate-900 leading-snug">
-                    {trip.toAddress}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Passenger Section */}
-          <div>
-            <p className="text-[10px] font-black tracking-widest uppercase text-slate-400 mb-3">
-              Utas és szolgáltatás
-            </p>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100">
-                <p className="text-xs font-bold text-slate-500 mb-1">Utas</p>
-                <p className="text-[15px] font-black text-slate-900 leading-tight">
-                  {trip.travelerName}
-                </p>
-                {trip.companyName && (
-                  <p className="text-xs font-bold text-blue-600 mt-0.5">
-                    {trip.companyName}
-                  </p>
-                )}
-              </div>
-              <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100">
-                <p className="text-xs font-bold text-slate-500 mb-1">Szolgáltatás</p>
-                <div className="flex items-center gap-1.5 mb-0.5">
-                  <ShieldCheck className="w-3.5 h-3.5 text-slate-600" />
-                  <p className="text-[14px] font-black text-slate-900">
-                    {trip.transferType === "executive" ? "Executive" : "Standard"} osztály
-                  </p>
-                </div>
-                <p className="text-xs font-bold text-slate-500">
-                  {trip.travelers} fő · {trip.luggage} csomag
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Pricing */}
-          <div>
-            <p className="text-[10px] font-black tracking-widest uppercase text-slate-400 mb-3">
-              Díjazás és fizetés
-            </p>
-            <div className="rounded-2xl border border-slate-100 overflow-hidden">
-              <div className="grid grid-cols-2 divide-x divide-slate-100 bg-slate-50">
-                <div className="p-4">
-                  <p className="text-xs font-bold text-slate-500 mb-0.5">Jármű</p>
-                  <p className="text-[13px] font-black text-slate-900">
-                    {trip.assignedVehicleName || "-"}
-                  </p>
-                </div>
-                <div className="p-4">
-                  <p className="text-xs font-bold text-slate-500 mb-0.5">Fizetési mód</p>
-                  <p className="text-[13px] font-black text-slate-900">
-                    {trip.paymentMethod === "card" ? "Bankkártya" : "Banki átutalás"}
-                  </p>
-                </div>
-              </div>
-              <div className="bg-gradient-to-r from-[#0f172a] via-slate-800 to-[#0f172a] text-white p-5 flex items-center justify-between">
-                <div>
-                  <p className="text-[10px] font-black tracking-[0.2em] uppercase text-emerald-200 mb-0.5">
-                    Teljes díj · Befizetve
-                  </p>
-                  <p className="text-xs font-bold text-slate-300">Az összeg végleges, végleges.</p>
-                </div>
-                <p className="text-3xl font-black tracking-tight">
-                  {formatMoney(trip.price)}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Signatures & NAV Info */}
-          <div className="pt-2">
-            <div className="grid grid-cols-2 gap-3 mb-6">
-              <div className="border-t-2 border-dashed border-slate-300 pt-3">
-                <p className="text-[10px] font-black tracking-widest text-slate-400 uppercase">
-                  Kiállító aláírása
-                </p>
-                <p className="text-sm font-bold text-slate-900 mt-1" style={{ fontFamily: "'Brush Script MT', cursive, serif" }}>
-                  {issuedBy}
-                </p>
-                <p className="text-[10px] text-slate-500 font-semibold uppercase tracking-widest">
-                  Pannon Transfer Sofőr
-                </p>
-              </div>
-              <div className="border-t-2 border-dashed border-slate-300 pt-3 text-right">
-                <p className="text-[10px] font-black tracking-widest text-slate-400 uppercase">
-                  Hitelesítő pecsét
-                </p>
-                <div className="mt-2 inline-flex items-center gap-1.5 rounded-md bg-emerald-50 border border-emerald-200 px-2 py-1">
-                  <Stamp className="w-3 h-3 text-emerald-600" />
-                  <p className="text-[9px] font-black tracking-widest uppercase text-emerald-700">
-                    Digitálisan aláírva
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* NAV Legal Text & Barcode */}
-            <div className="bg-slate-50 rounded-xl p-4 border border-slate-200 flex flex-col items-center justify-center text-center">
-              <div className="w-full flex items-center justify-center gap-1 mb-3 opacity-60">
-                {/* Simulated Barcode */}
-                {BARCODE_SEGMENTS.map((segment) => (
-                  <div
-                    key={segment.key}
-                    className="h-8 bg-slate-800"
-                    style={{
-                      width: segment.width,
-                      marginRight: segment.marginRight,
-                    }}
+            <div
+              className="flex items-center justify-center gap-3 py-3 px-4"
+              style={{
+                background: 'linear-gradient(135deg, rgba(16,185,129,0.15), rgba(52,211,153,0.1))',
+                border: '1px solid rgba(16,185,129,0.3)',
+                borderRadius: '16px',
+              }}
+            >
+              {/* Animated check */}
+              <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0" style={{ background: 'rgba(16,185,129,0.2)', border: '1.5px solid #10b981' }}>
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                  <path d="M2.5 7.5L5.5 10.5L11.5 4" stroke="#10b981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                    style={{ strokeDasharray: 100, strokeDashoffset: stampVisible ? 0 : 100, transition: 'stroke-dashoffset 0.5s ease 0.3s' }}
                   />
-                ))}
+                </svg>
               </div>
-              <p className="text-[9px] font-black tracking-[0.2em] text-slate-500 uppercase mb-2">
-                {receiptId} • {trip._id.slice(-8).toUpperCase()}
-              </p>
-              <p className="text-[8px] text-slate-400 leading-tight uppercase font-medium max-w-sm">
-                Ez a bizonylat a Nemzeti Adó- és Vámhivatal (NAV) előírásainak megfelelő, zárt rendszerű elektronikus hitelesítéssel jött létre. A bizonylat utólag nem módosítható. A 2007. évi CXXVII. törvény (Áfa tv.) alapján elektronikus nyugtaként szolgál.
-              </p>
+              <div className="flex-1">
+                <p className="text-[11px] font-black tracking-widest uppercase text-emerald-400">Fuvar sikeresen lezárva</p>
+                <p className="text-[9px] font-bold text-slate-500 tracking-wide">NAV Nyugtatárba feltöltve · Digitális aláírás érvényes</p>
+              </div>
+              <div
+                className="shrink-0 w-8 h-8 rounded-xl flex items-center justify-center"
+                style={{ background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.3)' }}
+              >
+                <Stamp className="w-4 h-4" style={{ color: '#10b981', animation: stampVisible ? 'stampDrop 0.7s cubic-bezier(0.34,1.56,0.64,1) 0.2s both' : 'none' }} />
+              </div>
             </div>
           </div>
 
-          {trip.comment?.trim() && (
-            <div className="bg-blue-50 rounded-2xl p-4 border border-blue-100">
-              <p className="text-[10px] font-black tracking-widest uppercase text-blue-600 mb-1.5">
-                Megjegyzés
-              </p>
-              <p className="text-sm font-medium text-slate-700 leading-relaxed">
-                {trip.comment}
-              </p>
+          {/* === SCROLLABLE BODY === */}
+          <div
+            className="flex-1 overflow-y-auto custom-scrollbar px-5 sm:px-6 space-y-4 pb-4"
+            style={{ opacity: bodyVisible ? 1 : 0, transform: bodyVisible ? 'translateY(0)' : 'translateY(20px)', transition: 'opacity 0.5s ease, transform 0.5s ease' }}
+          >
+            {/* Route */}
+            <div
+              className="rounded-2xl overflow-hidden"
+              style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}
+            >
+              <div className="px-4 pt-3 pb-1">
+                <p className="text-[9px] font-black tracking-[0.3em] uppercase" style={{ color: '#C9A962' }}>Fuvar útvonal · #{trip.bookingCode}</p>
+              </div>
+              <div className="px-4 pb-4 relative">
+                <div className="absolute left-7 top-4 bottom-4 w-[2px] rounded-full" style={{ background: 'linear-gradient(to bottom, #10b981, #3b82f6)' }} />
+                <div className="space-y-4 pl-6">
+                  <div className="relative">
+                    <div className="absolute -left-[23px] top-1 w-3 h-3 rounded-full border-2 border-emerald-500 bg-emerald-500 shadow-[0_0_0_3px_rgba(16,185,129,0.2)]" />
+                    <p className="text-[9px] font-black tracking-widest uppercase text-emerald-500 mb-0.5">Indulás · {trip.pickupTime} · {formatHuDateShort(trip.pickupDate)}</p>
+                    <p className="text-[14px] font-black text-white leading-snug">{trip.fromAddress}</p>
+                  </div>
+                  <div className="relative">
+                    <div className="absolute -left-[23px] top-1 w-3 h-3 rounded-full border-2 border-blue-500 bg-blue-500 shadow-[0_0_0_3px_rgba(59,130,246,0.2)]" />
+                    <p className="text-[9px] font-black tracking-widest uppercase text-blue-400 mb-0.5">Érkezés</p>
+                    <p className="text-[14px] font-black text-white leading-snug">{trip.toAddress}</p>
+                  </div>
+                </div>
+              </div>
             </div>
-          )}
-        </div>
 
-        {/* Footer Actions */}
-        <div className="shrink-0 px-6 sm:px-8 py-5 border-t border-slate-100 bg-slate-50 flex flex-col sm:flex-row gap-3">
-          <button
-            onClick={() => window.print()}
-            className="flex-1 inline-flex items-center justify-center gap-2 bg-white border border-slate-200 text-slate-700 py-3 rounded-xl text-[11px] font-black tracking-widest uppercase hover:bg-slate-100 transition"
+            {/* Passenger + Service */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="rounded-2xl p-4" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                <p className="text-[9px] font-black tracking-widest uppercase mb-2" style={{ color: '#C9A962' }}>Utas</p>
+                <p className="text-[13px] font-black text-white leading-tight">{trip.travelerName}</p>
+                {trip.companyName && <p className="text-[10px] font-bold text-blue-400 mt-0.5">{trip.companyName}</p>}
+                <p className="text-[10px] font-bold text-slate-500 mt-1">{trip.travelers} fő · {trip.luggage} csomag</p>
+              </div>
+              <div className="rounded-2xl p-4" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                <p className="text-[9px] font-black tracking-widest uppercase mb-2" style={{ color: '#C9A962' }}>Szolgáltatás</p>
+                <div className="flex items-center gap-1 mb-1">
+                  <ShieldCheck className="w-3.5 h-3.5 text-slate-400" />
+                  <p className="text-[13px] font-black text-white">{trip.transferType === 'executive' ? 'Executive' : 'Standard'}</p>
+                </div>
+                <p className="text-[10px] font-bold text-slate-500">Személyszállítás</p>
+                <p className="text-[10px] font-bold text-slate-500 mt-0.5">{trip.assignedVehicleName || '–'}</p>
+              </div>
+            </div>
+
+            {/* === PRICE BLOCK === */}
+            <div
+              className="rounded-2xl overflow-hidden"
+              style={{ background: 'linear-gradient(135deg, #064e3b 0%, #065f46 50%, #047857 100%)', boxShadow: '0 8px 32px -8px rgba(16,185,129,0.4)' }}
+            >
+              <div className="px-5 py-4 flex items-center justify-between">
+                <div>
+                  <p className="text-[9px] font-black tracking-[0.3em] uppercase text-emerald-300 mb-1">Teljes díj · Áfa-tartalom: 27%</p>
+                  <p className="text-[10px] font-bold text-emerald-200">{trip.paymentMethod === 'card' ? 'Bankkártyával fizetve' : 'Banki átutalással fizetve'}</p>
+                </div>
+                <div className="text-right">
+                  <p
+                    className="text-4xl font-black text-white"
+                    style={{ textShadow: '0 0 30px rgba(52,211,153,0.5)', fontVariantNumeric: 'tabular-nums' }}
+                  >
+                    {formatMoney(trip.price)}
+                  </p>
+                </div>
+              </div>
+              {/* Shimmer */}
+              <div style={{ height: '2px', background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent)', backgroundSize: '200% 100%', animation: 'shimmer 2s infinite' }} />
+            </div>
+
+            {/* === SIGNATURE + QR === */}
+            <div className="grid grid-cols-2 gap-3">
+              {/* Signature */}
+              <div className="rounded-2xl p-4" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                <p className="text-[9px] font-black tracking-widest uppercase mb-3" style={{ color: '#C9A962' }}>Kiállító</p>
+                <p className="text-[16px] font-bold text-white leading-tight" style={{ fontFamily: "'Brush Script MT', cursive, serif" }}>{issuedBy}</p>
+                <div className="mt-2 pt-2" style={{ borderTop: '1px dashed rgba(255,255,255,0.1)' }}>
+                  <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Pannon Transfer Sofőr</p>
+                </div>
+              </div>
+              {/* QR Code */}
+              <div className="rounded-2xl p-4 flex flex-col items-center justify-center" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                <p className="text-[9px] font-black tracking-widest uppercase mb-2" style={{ color: '#C9A962' }}>DÁP QR</p>
+                <div style={{ filter: 'drop-shadow(0 0 8px rgba(16,185,129,0.4))' }}>
+                  <QRCodeSimulated value={receiptId} />
+                </div>
+                <p className="text-[8px] font-bold text-slate-500 mt-1.5 text-center">Olvasd be a NAV app-pal</p>
+              </div>
+            </div>
+
+            {/* === HOLOGRAM STAMP === */}
+            <div
+              className="relative rounded-2xl overflow-hidden p-4"
+              style={{
+                background: 'rgba(255,255,255,0.02)',
+                border: '1px solid rgba(255,255,255,0.06)',
+              }}
+            >
+              <div className="flex items-start gap-4">
+                {/* Hologram circle */}
+                <div
+                  className="shrink-0 w-16 h-16 rounded-full flex items-center justify-center relative"
+                  style={{
+                    background: 'conic-gradient(from 0deg, #10b981, #3b82f6, #a78bfa, #10b981)',
+                    animation: 'hologram 3s ease-in-out infinite',
+                    boxShadow: '0 0 20px rgba(16,185,129,0.3)',
+                  }}
+                >
+                  <div
+                    className="absolute inset-1 rounded-full flex items-center justify-center"
+                    style={{ background: '#0a1628' }}
+                  >
+                    <ShieldCheck className="w-7 h-7 text-emerald-400" />
+                  </div>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                    <p className="text-[10px] font-black tracking-widest uppercase text-emerald-400">Digitálisan hitelesítve</p>
+                  </div>
+                  <p className="text-[9px] font-bold text-slate-500 leading-relaxed">
+                    Bizonylatazonosító: <span className="font-mono text-slate-400">{receiptId}</span>
+                  </p>
+                  <p className="text-[9px] font-bold text-slate-500 leading-relaxed">
+                    Hash: <span className="font-mono text-slate-400">{trip._id.slice(-16).toUpperCase()}</span>
+                  </p>
+                </div>
+              </div>
+
+              {/* NAV Barcode */}
+              <div className="mt-3 pt-3" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                <div className="flex items-center justify-center gap-[1.5px] h-8 mb-2 opacity-50">
+                  {BARCODE_SEGMENTS.map((s) => (
+                    <div key={s.key} className="h-full rounded-[1px]" style={{ width: s.width, background: '#34d399', marginRight: s.marginRight }} />
+                  ))}
+                </div>
+                <p className="text-[8px] font-bold text-slate-600 text-center tracking-widest uppercase">
+                  Ez a bizonylat a NAV előírásainak megfelelő elektronikus hitelesítéssel jött létre.
+                  A 2007. évi CXXVII. tv. (Áfa tv.) alapján érvényes e-Nyugta. Nem módosítható.
+                </p>
+              </div>
+            </div>
+
+            {trip.comment?.trim() && (
+              <div className="rounded-2xl p-4" style={{ background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.2)' }}>
+                <p className="text-[9px] font-black tracking-widest uppercase text-blue-400 mb-1.5">Megjegyzés</p>
+                <p className="text-sm font-medium text-slate-300 leading-relaxed">{trip.comment}</p>
+              </div>
+            )}
+          </div>
+
+          {/* === FOOTER ACTIONS === */}
+          <div
+            className="shrink-0 px-5 sm:px-6 py-4 flex flex-col sm:flex-row gap-3"
+            style={{ borderTop: '1px solid rgba(255,255,255,0.07)', background: 'rgba(0,0,0,0.3)' }}
           >
-            <Download className="w-4 h-4 text-slate-500" />
-            Nyomtatás / Mentés PDF
-          </button>
-          <button
-            onClick={onClose}
-            className="flex-1 inline-flex items-center justify-center gap-2 bg-slate-900 text-white py-3 rounded-xl text-[11px] font-black tracking-widest uppercase hover:bg-slate-800 transition"
-          >
-            <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-            Rendben · Bezárás
-          </button>
+            <button
+              onClick={() => window.print()}
+              className="flex-1 inline-flex items-center justify-center gap-2 py-3.5 rounded-xl text-[11px] font-black tracking-widest uppercase transition"
+              style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: '#94a3b8' }}
+            >
+              <Download className="w-4 h-4" />
+              Nyomtatás · PDF
+            </button>
+            <button
+              onClick={onClose}
+              className="flex-1 inline-flex items-center justify-center gap-2 py-3.5 rounded-xl text-[11px] font-black tracking-widest uppercase transition"
+              style={{
+                background: 'linear-gradient(135deg, #064e3b, #059669)',
+                boxShadow: '0 8px 20px -8px rgba(16,185,129,0.5)',
+                color: 'white',
+              }}
+            >
+              <CheckCircle2 className="w-4 h-4 text-emerald-200" />
+              Rendben · Bezárás
+            </button>
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
 
+// === FINALIZE OVERLAY ===
+const FINALIZE_STEPS = [
+  { icon: Wifi, label: 'Titkosított kapcsolat felépítése', sub: 'TLS 1.3 · AES-256', color: '#60a5fa', duration: 900 },
+  { icon: Lock, label: 'XML aláírás generálása', sub: 'RSA-2048 · SHA-256 hash', color: '#a78bfa', duration: 800 },
+  { icon: ShieldCheck, label: 'NAV szerverre küldés', sub: 'Online Számla API v3.0', color: '#C9A962', duration: 1000 },
+  { icon: Award, label: 'Hitelesítés sikeres!', sub: 'e-Nyugta jogilag érvényes', color: '#10b981', duration: 0 },
+];
+
 function FinalizeOverlay() {
+  const [step, setStep] = useState(0);
+  const [progress, setProgress] = useState(0);
+  const stepRef = useRef(0);
+
+  useEffect(() => {
+    let prog = 0;
+    const progInterval = setInterval(() => {
+      prog = Math.min(prog + 1.5, 95);
+      setProgress(prog);
+    }, 40);
+
+    const advance = (index: number) => {
+      if (index >= FINALIZE_STEPS.length - 1) return;
+      const dur = FINALIZE_STEPS[index].duration;
+      return setTimeout(() => {
+        stepRef.current = index + 1;
+        setStep(index + 1);
+        advance(index + 1);
+      }, dur);
+    };
+    const t = advance(0);
+
+    return () => {
+      clearInterval(progInterval);
+      if (t) clearTimeout(t);
+    };
+  }, []);
+
+  const currentStep = FINALIZE_STEPS[step];
+  const StepIcon = currentStep.icon;
+
   return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center p-6 bg-slate-900/80 backdrop-blur-md animate-in fade-in duration-300">
-      <div className="w-full max-w-sm text-center">
-        <div className="relative inline-block mb-10">
-          {/* Outer glowing rings */}
-          <div className="absolute inset-0 rounded-full bg-emerald-500/20 blur-3xl animate-[pulse_2s_ease-in-out_infinite] scale-150" />
-          <div className="absolute inset-0 rounded-full bg-emerald-400/40 blur-xl animate-[ping_1.5s_cubic-bezier(0,0,0.2,1)_infinite]" />
-          
-          {/* Main spinner container */}
-          <div className="relative w-28 h-28 rounded-full bg-gradient-to-b from-slate-800 to-slate-900 border border-slate-700/50 flex items-center justify-center shadow-[0_0_50px_-12px_rgba(16,185,129,0.8)] overflow-hidden">
-            {/* Scanning line animation */}
-            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-emerald-400/20 to-transparent h-[200%] animate-[spin_2s_linear_infinite]" />
-            
-            {/* Center icon */}
-            <div className="relative z-10 w-20 h-20 rounded-full bg-gradient-to-br from-emerald-400 via-emerald-500 to-teal-600 flex items-center justify-center shadow-inner">
-              <ShieldCheck className="w-10 h-10 text-white animate-[pulse_1s_ease-in-out_infinite]" />
+    <div
+      className="fixed inset-0 z-40 flex items-center justify-center p-6"
+      style={{ background: 'rgba(2,8,23,0.92)', backdropFilter: 'blur(20px)', animation: 'fade-in 0.3s ease' }}
+    >
+      {/* Ambient glow */}
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+        <div style={{ width: 400, height: 400, background: `radial-gradient(circle, ${currentStep.color}22 0%, transparent 70%)`, transition: 'background 0.6s ease' }} />
+      </div>
+
+      <div className="relative w-full max-w-sm">
+        {/* === MAIN SPINNER === */}
+        <div className="flex items-center justify-center mb-10">
+          <div className="relative">
+            {/* Outer ring 1 */}
+            <div
+              className="absolute rounded-full"
+              style={{
+                inset: '-20px',
+                border: `2px solid ${currentStep.color}33`,
+                animation: 'rotateRing 3s linear infinite',
+              }}
+            />
+            {/* Outer ring 2 - reverse */}
+            <div
+              className="absolute rounded-full"
+              style={{
+                inset: '-10px',
+                border: `1.5px dashed ${currentStep.color}55`,
+                animation: 'rotateRingReverse 2s linear infinite',
+              }}
+            />
+            {/* Glow */}
+            <div
+              className="absolute rounded-full"
+              style={{ inset: '-30px', background: `radial-gradient(circle, ${currentStep.color}20, transparent 70%)`, animation: 'pulse 2s ease-in-out infinite' }}
+            />
+            {/* Main circle */}
+            <div
+              className="relative w-28 h-28 rounded-full flex items-center justify-center overflow-hidden"
+              style={{
+                background: `linear-gradient(135deg, #0a1628, #111827)`,
+                border: `2px solid ${currentStep.color}60`,
+                boxShadow: `0 0 40px ${currentStep.color}40, inset 0 0 30px rgba(0,0,0,0.5)`,
+                transition: 'border-color 0.5s ease, box-shadow 0.5s ease',
+              }}
+            >
+              {/* Scan line */}
+              <div
+                className="absolute left-0 right-0 h-[2px] opacity-80"
+                style={{
+                  background: `linear-gradient(90deg, transparent, ${currentStep.color}, transparent)`,
+                  animation: 'scanLine 1.2s ease-in-out infinite',
+                }}
+              />
+              {/* Icon */}
+              <div
+                className="relative z-10 w-16 h-16 rounded-full flex items-center justify-center"
+                style={{
+                  background: `linear-gradient(135deg, ${currentStep.color}30, ${currentStep.color}10)`,
+                  border: `1.5px solid ${currentStep.color}50`,
+                  transition: 'all 0.4s ease',
+                }}
+              >
+                <StepIcon
+                  className="w-8 h-8"
+                  style={{ color: currentStep.color, filter: `drop-shadow(0 0 8px ${currentStep.color})`, transition: 'color 0.4s ease' }}
+                />
+              </div>
             </div>
           </div>
         </div>
 
-        <h3 className="text-3xl font-black text-white tracking-tight mb-3">
-          NAV Hitelesítés…
-        </h3>
-        
-        <div className="space-y-2 mb-6">
-          <p className="text-sm font-bold text-emerald-400 uppercase tracking-widest animate-pulse">
-            Titkosított kapcsolat felépítése
+        {/* === STATUS TEXT === */}
+        <div className="text-center mb-8">
+          <h3
+            className="text-2xl font-black text-white tracking-tight mb-2"
+            style={{ textShadow: `0 0 20px ${currentStep.color}80` }}
+          >
+            {step < FINALIZE_STEPS.length - 1 ? 'NAV Hitelesítés…' : 'Hitelesítve!'}
+          </h3>
+          <p
+            className="text-sm font-bold uppercase tracking-widest mb-1"
+            style={{ color: currentStep.color, animation: 'glowPulse 2s ease-in-out infinite' }}
+          >
+            {currentStep.label}
           </p>
-          <p className="text-xs font-semibold text-slate-400 max-w-[260px] mx-auto leading-relaxed">
-            Az e-Nyugta digitális aláírása és a NAV szerverek felé történő hitelesítése folyamatban van.
-          </p>
+          <p className="text-xs font-semibold text-slate-500">{currentStep.sub}</p>
         </div>
 
-        {/* Progress bar */}
-        <div className="w-48 h-1.5 bg-slate-800 rounded-full mx-auto overflow-hidden">
-          <div className="h-full bg-emerald-500 rounded-full w-2/3 animate-[pulse_1s_ease-in-out_infinite]" style={{ animationDuration: '0.8s' }} />
+        {/* === STEP INDICATORS === */}
+        <div className="flex items-center justify-center gap-2 mb-8">
+          {FINALIZE_STEPS.map((s, i) => {
+            const S = s.icon;
+            const done = i < step;
+            const active = i === step;
+            return (
+              <div key={i} className="flex flex-col items-center gap-1.5">
+                <div
+                  className="w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-500"
+                  style={{
+                    background: done ? `${s.color}20` : active ? `${s.color}15` : 'rgba(255,255,255,0.04)',
+                    border: `1.5px solid ${done || active ? s.color + '60' : 'rgba(255,255,255,0.08)'}`,
+                    boxShadow: active ? `0 0 12px ${s.color}40` : 'none',
+                    transform: active ? 'scale(1.15)' : 'scale(1)',
+                  }}
+                >
+                  {done ? (
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                      <path d="M2 6.5L4.5 9L10 3" stroke={s.color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  ) : (
+                    <S className="w-3.5 h-3.5" style={{ color: active ? s.color : '#475569' }} />
+                  )}
+                </div>
+                {i < FINALIZE_STEPS.length - 1 && (
+                  <div className="w-6 h-[1px] rotate-90 mt-[-5px]" style={{ background: done ? s.color + '60' : 'rgba(255,255,255,0.06)' }} />
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* === PROGRESS BAR === */}
+        <div className="w-full rounded-full overflow-hidden" style={{ height: '3px', background: 'rgba(255,255,255,0.06)' }}>
+          <div
+            className="h-full rounded-full transition-all duration-300"
+            style={{
+              width: `${progress}%`,
+              background: `linear-gradient(90deg, ${currentStep.color}80, ${currentStep.color})`,
+              boxShadow: `0 0 8px ${currentStep.color}`,
+            }}
+          />
+        </div>
+        <div className="flex justify-between mt-2">
+          <p className="text-[9px] font-black text-slate-600 tracking-widest uppercase">0%</p>
+          <p className="text-[9px] font-black tracking-widest uppercase" style={{ color: currentStep.color }}>{Math.round(progress)}%</p>
         </div>
       </div>
     </div>
@@ -746,9 +1090,12 @@ export default function DashboardPage() {
   const [openReceipt, setOpenReceipt] = useState<ReceiptState | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Sidebar states
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<"trips" | "waybills" | "attendance" | "holidays">("trips");
+  // Track trip IDs we've already seen/notified about (to manage bell badge)
+  const [seenTripIds, setSeenTripIds] = useState<Set<string>>(new Set());
+  const [isBellOpen, setIsBellOpen] = useState(false);
+  const bellRef = useRef<HTMLDivElement>(null);
 
   const loadDashboard = useCallback(
     async (refresh = false) => {
@@ -868,6 +1215,44 @@ export default function DashboardPage() {
     [trips]
   );
 
+  // Unseen = driverNotified but NOT driverAcknowledged AND not in seenTripIds
+  const newUnseenTrips = useMemo(
+    () => trips.filter((t) => !t.driverAcknowledged && !seenTripIds.has(t._id)),
+    [trips, seenTripIds]
+  );
+
+  // Mark a trip as seen in the bell (but not yet acknowledged)
+  const markBellSeen = useCallback((tripId: string) => {
+    setSeenTripIds((prev) => new Set([...prev, tripId]));
+  }, []);
+
+  // Close bell dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (bellRef.current && !bellRef.current.contains(e.target as Node)) {
+        setIsBellOpen(false);
+      }
+    }
+    if (isBellOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [isBellOpen]);
+
+  // Sorted trips: unacknowledged NEW ones first, then rest by pickupDate desc
+  const sortedTrips = useMemo(() => {
+    return [...trips].sort((a, b) => {
+      const aNew = !a.driverAcknowledged;
+      const bNew = !b.driverAcknowledged;
+      if (aNew && !bNew) return -1;
+      if (!aNew && bNew) return 1;
+      // Within same group: sort by pickupDate desc (newest date first)
+      const aDate = new Date(`${a.pickupDate}T${a.pickupTime || '00:00'}`).getTime();
+      const bDate = new Date(`${b.pickupDate}T${b.pickupTime || '00:00'}`).getTime();
+      return bDate - aDate;
+    });
+  }, [trips]);
+
   let mainContent;
 
   if (activeTab === "trips") {
@@ -943,7 +1328,7 @@ export default function DashboardPage() {
           </div>
         ) : (
           <div className="space-y-6">
-            {trips.map((trip) => (
+            {sortedTrips.map((trip) => (
               <TripCard
                 key={trip._id}
                 trip={trip}
@@ -960,6 +1345,7 @@ export default function DashboardPage() {
                 }
                 acknowledgingId={acknowledgingId}
                 finalizingId={finalizingId}
+                isNew={!seenTripIds.has(trip._id) && !trip.driverAcknowledged}
               />
             ))}
           </div>
@@ -1155,16 +1541,145 @@ export default function DashboardPage() {
               <p className="text-sm font-bold text-white mt-0.5">{user?.name}</p>
             </div>
           </div>
-          <button
-            onClick={() => {
-              document.cookie =
-                "driver_auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;";
-              router.push("/");
-            }}
-            className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition"
-          >
-            <LogOut className="w-4 h-4 text-white" />
-          </button>
+
+          {/* Right side: Bell + Logout */}
+          <div className="flex items-center gap-2">
+            {/* === BELL NOTIFICATION === */}
+            <div ref={bellRef} className="relative">
+              <button
+                onClick={() => {
+                  setIsBellOpen((prev) => !prev);
+                  // Mark all current unseen as seen when opening bell
+                  if (!isBellOpen) {
+                    newUnseenTrips.forEach((t) => markBellSeen(t._id));
+                  }
+                }}
+                className="relative w-10 h-10 rounded-full flex items-center justify-center transition"
+                style={{
+                  background: newUnseenTrips.length > 0 ? 'rgba(251,191,36,0.15)' : 'rgba(255,255,255,0.08)',
+                  border: newUnseenTrips.length > 0 ? '1.5px solid rgba(251,191,36,0.5)' : '1px solid rgba(255,255,255,0.1)',
+                  boxShadow: newUnseenTrips.length > 0 ? '0 0 16px rgba(251,191,36,0.3)' : 'none',
+                }}
+                aria-label="Értesítések"
+              >
+                <BellRing
+                  className="w-5 h-5"
+                  style={{
+                    color: newUnseenTrips.length > 0 ? '#fbbf24' : 'rgba(255,255,255,0.7)',
+                    animation: newUnseenTrips.length > 0 ? 'bellShake 1.2s ease-in-out infinite' : 'none',
+                  }}
+                />
+                {/* Badge */}
+                {newUnseenTrips.length > 0 && (
+                  <span
+                    className="absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black text-slate-900"
+                    style={{
+                      background: 'linear-gradient(135deg, #fbbf24, #f59e0b)',
+                      boxShadow: '0 0 8px rgba(251,191,36,0.6)',
+                      animation: 'navPulse 1.5s ease-in-out infinite',
+                    }}
+                  >
+                    {newUnseenTrips.length}
+                  </span>
+                )}
+              </button>
+
+              {/* Bell Dropdown */}
+              {isBellOpen && (
+                <div
+                  className="absolute right-0 top-12 w-80 max-w-[90vw] rounded-2xl overflow-hidden z-50"
+                  style={{
+                    background: '#111827',
+                    border: '1px solid rgba(255,255,255,0.1)',
+                    boxShadow: '0 20px 60px -10px rgba(0,0,0,0.6)',
+                    animation: 'receiptReveal 0.25s cubic-bezier(0.34,1.56,0.64,1) forwards',
+                  }}
+                >
+                  {/* Header */}
+                  <div className="px-4 py-3 flex items-center justify-between" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                    <div className="flex items-center gap-2">
+                      <BellRing className="w-4 h-4" style={{ color: '#fbbf24' }} />
+                      <p className="text-[11px] font-black tracking-widest uppercase text-white">Értesítések</p>
+                    </div>
+                    <button onClick={() => setIsBellOpen(false)}>
+                      <X className="w-4 h-4 text-slate-500" />
+                    </button>
+                  </div>
+
+                  {/* Notification list */}
+                  <div className="max-h-72 overflow-y-auto custom-scrollbar">
+                    {trips.filter((t) => !t.driverAcknowledged).length === 0 ? (
+                      <div className="px-4 py-6 text-center">
+                        <CheckCircle2 className="w-8 h-8 text-emerald-500 mx-auto mb-2" />
+                        <p className="text-[11px] font-bold text-slate-400">Minden fuvar visszaigazolva</p>
+                      </div>
+                    ) : (
+                      trips.filter((t) => !t.driverAcknowledged).map((t) => (
+                        <div
+                          key={t._id}
+                          className="px-4 py-3 flex items-start gap-3 cursor-pointer transition"
+                          style={{
+                            borderBottom: '1px solid rgba(255,255,255,0.04)',
+                            background: !seenTripIds.has(t._id) ? 'rgba(251,191,36,0.05)' : 'transparent',
+                          }}
+                          onClick={() => {
+                            markBellSeen(t._id);
+                            setIsBellOpen(false);
+                            setActiveTab('trips');
+                          }}
+                        >
+                          <div
+                            className="shrink-0 w-8 h-8 rounded-xl flex items-center justify-center"
+                            style={{ background: 'rgba(251,191,36,0.1)', border: '1px solid rgba(251,191,36,0.3)' }}
+                          >
+                            <MapPin className="w-4 h-4" style={{ color: '#fbbf24' }} />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-0.5">
+                              <p className="text-[11px] font-black text-white">Új fuvar érkezett</p>
+                              {!seenTripIds.has(t._id) && (
+                                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" style={{ animation: 'navPulse 1.5s infinite' }} />
+                              )}
+                            </div>
+                            <p className="text-[10px] font-bold text-slate-400 truncate">#{t.bookingCode} · {t.pickupTime} · {t.fromAddress}</p>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+
+                  {/* Footer */}
+                  {trips.filter((t) => !t.driverAcknowledged).length > 0 && (
+                    <div className="px-4 py-2.5" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                      <button
+                        className="w-full text-[10px] font-black tracking-widest uppercase text-center transition"
+                        style={{ color: '#fbbf24' }}
+                        onClick={() => {
+                          trips.filter((t) => !t.driverAcknowledged).forEach((t) => markBellSeen(t._id));
+                          setIsBellOpen(false);
+                          setActiveTab('trips');
+                        }}
+                      >
+                        Összes megtekintése
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Logout */}
+            <button
+              onClick={() => {
+                document.cookie =
+                  "driver_auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;";
+                router.push("/");
+              }}
+              className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition"
+            >
+              <LogOut className="w-4 h-4 text-white" />
+            </button>
+          </div>
         </div>
       </header>
 
