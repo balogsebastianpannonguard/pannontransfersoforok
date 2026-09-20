@@ -753,14 +753,14 @@ function ReceiptModal({
                     <div className="absolute -left-[23px] top-1 w-3 h-3 rounded-full border-2 border-emerald-500 bg-emerald-500 shadow-[0_0_0_3px_rgba(16,185,129,0.2)]" />
                     <p className="text-[9px] font-black tracking-widest uppercase text-emerald-500 mb-0.5">Indulás · {trip.pickupTime} · {formatHuDateShort(trip.pickupDate)}</p>
                     <p className="text-[14px] font-black text-white leading-snug">{trip.fromAddress}</p>
+                    {trip.flightNumber && (
+                      <p className="text-[10px] font-bold text-amber-300 mt-1.5">Járatszám: {trip.flightNumber}</p>
+                    )}
                   </div>
                   <div className="relative">
                     <div className="absolute -left-[23px] top-1 w-3 h-3 rounded-full border-2 border-blue-500 bg-blue-500 shadow-[0_0_0_3px_rgba(59,130,246,0.2)]" />
                     <p className="text-[9px] font-black tracking-widest uppercase text-blue-400 mb-0.5">Érkezés</p>
                     <p className="text-[14px] font-black text-white leading-snug">{trip.toAddress}</p>
-                    {trip.toType === "airport" && trip.flightNumber && (
-                      <p className="text-[10px] font-bold text-amber-300 mt-1">Járatszám: {trip.flightNumber}</p>
-                    )}
                   </div>
                 </div>
               </div>
