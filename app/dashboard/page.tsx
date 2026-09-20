@@ -49,6 +49,8 @@ interface DriverTrip {
   companyName?: string;
   fromAddress: string;
   toAddress: string;
+  toType?: "airport" | "other";
+  flightNumber?: string;
   pickupDate: string;
   pickupTime: string;
   travelers: number;
@@ -125,17 +127,21 @@ const BARCODE_SEGMENTS = Array.from({ length: 30 }, (_, index) => ({
 function TripCard({
   trip,
   onAcknowledge,
+  onStart,
   onFinalize,
   onOpenReceipt,
   acknowledgingId,
+  startingId,
   finalizingId,
   isNew,
 }: {
   trip: DriverTrip;
   onAcknowledge: (id: string) => void;
+  onStart: (id: string) => void;
   onFinalize: (id: string) => void;
   onOpenReceipt: (trip: DriverTrip) => void;
   acknowledgingId: string | null;
+  startingId: string | null;
   finalizingId: string | null;
   isNew: boolean;
 }) {
@@ -442,7 +448,23 @@ function TripCard({
                 {/* E-Nyugta / Fuvar véglegesítése szekció */}
                 {trip.driverAcknowledged && (
                   <div className="mt-4 pt-4 border-t border-slate-100">
-                    <button
+                    {trip.status === "confirmed" && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onStart(trip._id);
+                        }}
+                        disabled={startingId === trip._id}
+                        className="mb-3 w-full flex items-center justify-center gap-3 py-4 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-700 text-white text-[11px] font-black tracking-widest uppercase shadow-lg shadow-blue-600/25 transition hover:-translate-y-0.5 disabled:opacity-70"
+                      >
+                        {startingId === trip._id ? (
+                          <><RefreshCw className="w-5 h-5 animate-spin" /> Út indítása…</>
+                        ) : (
+                          <><Navigation className="w-5 h-5" /> Út elkezdése</>
+                        )}
+                      </button>
+                    )}
+                    {trip.status === "in-progress" && <button
                       onClick={(e) => {
                         e.stopPropagation();
                         onFinalize(trip._id);
@@ -482,7 +504,7 @@ function TripCard({
                           <Zap className="w-4 h-4 text-yellow-300 animate-pulse ml-1" />
                         </div>
                       )}
-                    </button>
+                    </button>}
                   </div>
                 )}
               </>
@@ -736,6 +758,9 @@ function ReceiptModal({
                     <div className="absolute -left-[23px] top-1 w-3 h-3 rounded-full border-2 border-blue-500 bg-blue-500 shadow-[0_0_0_3px_rgba(59,130,246,0.2)]" />
                     <p className="text-[9px] font-black tracking-widest uppercase text-blue-400 mb-0.5">Érkezés</p>
                     <p className="text-[14px] font-black text-white leading-snug">{trip.toAddress}</p>
+                    {trip.toType === "airport" && trip.flightNumber && (
+                      <p className="text-[10px] font-bold text-amber-300 mt-1">Járatszám: {trip.flightNumber}</p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -1086,6 +1111,7 @@ export default function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [acknowledgingId, setAcknowledgingId] = useState<string | null>(null);
+  const [startingId, setStartingId] = useState<string | null>(null);
   const [finalizingId, setFinalizingId] = useState<string | null>(null);
   const [openReceipt, setOpenReceipt] = useState<ReceiptState | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -1202,6 +1228,23 @@ export default function DashboardPage() {
       setError(err instanceof Error ? err.message : "A nyugta kiállítása sikertelen");
     } finally {
       setFinalizingId(null);
+    }
+
+  }
+
+  async function handleStart(tripId: string) {
+    try {
+      setStartingId(tripId);
+      const res = await fetch(`/api/trips/${tripId}/start`, { method: "POST" });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data?.trip) {
+        throw new Error(data?.error || "A fuvar indítása sikertelen");
+      }
+      setTrips((current) => current.map((trip) => trip._id === tripId ? data.trip : trip));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "A fuvar indítása sikertelen");
+    } finally {
+      setStartingId(null);
     }
   }
 
@@ -1333,6 +1376,7 @@ export default function DashboardPage() {
                 key={trip._id}
                 trip={trip}
                 onAcknowledge={handleAcknowledge}
+                onStart={handleStart}
                 onFinalize={handleFinalize}
                 onOpenReceipt={(t) =>
                   t.receipt &&
@@ -1344,6 +1388,7 @@ export default function DashboardPage() {
                   })
                 }
                 acknowledgingId={acknowledgingId}
+                startingId={startingId}
                 finalizingId={finalizingId}
                 isNew={!seenTripIds.has(trip._id) && !trip.driverAcknowledged}
               />

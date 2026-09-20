@@ -44,7 +44,7 @@ export async function POST(
         _id: new ObjectId(id),
         assignedDriverId: driverId,
         driverAcknowledged: true,
-        status: { $in: ["confirmed", "in-progress"] },
+        status: "in-progress",
       },
       {
         $set: {
@@ -77,6 +77,50 @@ export async function POST(
         { error: "A fuvar nem talalhato, vagy nem allapota nem modosithato." },
         { status: 404 }
       );
+    }
+
+    const remainingAssignedTrips = await db.collection("bookings").countDocuments({
+      assignedDriverId: driverId,
+      driverNotified: true,
+      status: "in-progress",
+      _id: { $ne: new ObjectId(id) },
+    });
+
+    const driverStatusUpdate: {
+      $set: Record<string, unknown>;
+      $unset?: Record<string, string>;
+    } = {
+      $set: {
+        lastTripCompletedAt: now,
+        driverStatus: remainingAssignedTrips === 0 ? "active" : "on_route",
+        updatedAt: now,
+      },
+    };
+    if (remainingAssignedTrips === 0) {
+      driverStatusUpdate.$set.driverAvailableAt = now;
+    } else {
+      driverStatusUpdate.$unset = { driverAvailableAt: "" };
+    }
+
+    await db.collection("staff_users").updateOne(
+      { _id: new ObjectId(driverId), role: "driver" },
+      driverStatusUpdate
+    );
+
+    if (updatedTrip.assignedVehicleId && ObjectId.isValid(updatedTrip.assignedVehicleId)) {
+      const remainingVehicleTrips = await db.collection("bookings").countDocuments({
+        assignedVehicleId: updatedTrip.assignedVehicleId,
+        driverNotified: true,
+        status: "in-progress",
+        _id: { $ne: new ObjectId(id) },
+      });
+
+      if (remainingVehicleTrips === 0) {
+        await db.collection("vehicles").updateOne(
+          { _id: new ObjectId(updatedTrip.assignedVehicleId) },
+          { $set: { status: "parked", updatedAt: now } }
+        );
+      }
     }
 
     return NextResponse.json({
