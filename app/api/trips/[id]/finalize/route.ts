@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { jwtVerify } from "jose";
 import { connectToDatabase } from "@/lib/mongodb";
+import { notifyTripCompleted } from "@/lib/trip-completion";
 
 const AUTH_SECRET = new TextEncoder().encode(
   process.env.AUTH_COOKIE_VALUE || "default_driver_secret_key_2025"
@@ -51,6 +52,7 @@ export async function POST(
           status: "completed",
           completedAt: now,
           completedBy: driverId,
+          trackLinkActive: false,
           receipt: {
             id: receiptId,
             issuedAt: now,
@@ -122,6 +124,9 @@ export async function POST(
         );
       }
     }
+
+    // Befejezési értesítés az utas(ok)nak. NI foglalásnál visszajelzési linkkel; hiba esetén sem akadályozza a lezárást.
+    await notifyTripCompleted(db, updatedTrip as Parameters<typeof notifyTripCompleted>[1]);
 
     return NextResponse.json({
       success: true,
