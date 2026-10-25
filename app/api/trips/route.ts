@@ -29,7 +29,8 @@ export async function GET() {
       .find({
         assignedDriverId: driverId,
         driverNotified: true,
-        status: { $in: ["confirmed", "in-progress", "completed"] },
+        // "modified" = a diszpécser kiküldte a sofőrnek, de az utas még nincs véglegesítve
+        status: { $in: ["confirmed", "modified", "in-progress", "completed"] },
       })
       .sort({ pickupDate: 1, pickupTime: 1, createdAt: -1 })
       .toArray();

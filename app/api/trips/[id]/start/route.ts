@@ -47,14 +47,14 @@ export async function POST(
       _id: bookingId,
       assignedDriverId: driverId,
       driverAcknowledged: true,
-      status: "confirmed",
+      status: { $in: ["confirmed", "modified"] },
     });
     if (!booking) {
       return NextResponse.json({ error: "A fuvar nem indítható el ebben az állapotban." }, { status: 409 });
     }
 
     const updatedTrip = await db.collection("bookings").findOneAndUpdate(
-      { _id: bookingId, assignedDriverId: driverId, status: "confirmed" },
+      { _id: bookingId, assignedDriverId: driverId, status: { $in: ["confirmed", "modified"] } },
       {
         $set: {
           status: "in-progress",

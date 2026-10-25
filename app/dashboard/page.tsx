@@ -448,7 +448,7 @@ function TripCard({
                 {/* E-Nyugta / Fuvar véglegesítése szekció */}
                 {trip.driverAcknowledged && (
                   <div className="mt-4 pt-4 border-t border-slate-100">
-                    {trip.status === "confirmed" && (
+                    {(trip.status === "confirmed" || trip.status === "modified") && (
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
