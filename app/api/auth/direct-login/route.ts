@@ -41,10 +41,12 @@ export async function POST(request: NextRequest) {
     const secret = new TextEncoder().encode(
       process.env.AUTH_COOKIE_VALUE || "default_driver_secret_key_2025"
     );
+    // Az egyedi belépő linkkel létrehozott munkamenet nem jár le (a normál
+    // e-mail+jelszavas bejelentkezés 30 napos lejárata ettől függetlenül megmarad).
     const sessionToken = await new SignJWT(payload)
       .setProtectedHeader({ alg: "HS256" })
       .setIssuedAt()
-      .setExpirationTime("30d")
+      .setExpirationTime("100y")
       .sign(secret);
 
     const { db } = await connectToDatabase();
@@ -58,7 +60,7 @@ export async function POST(request: NextRequest) {
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
       path: "/",
-      maxAge: 30 * 24 * 60 * 60,
+      maxAge: 100 * 365 * 24 * 60 * 60,
     });
     return response;
   } catch (err) {
