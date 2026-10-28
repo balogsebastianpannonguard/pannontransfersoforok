@@ -1,6 +1,7 @@
 import { randomBytes } from "crypto";
 import type { Db } from "mongodb";
 import nodemailer from "nodemailer";
+import { logEmail } from "./email-log";
 
 const PORTAL_URL = (process.env.PARTNER_PORTAL_URL || "https://pannontransferkomplexxpartnerceg.vercel.app").replace(/\/$/, "");
 const FEEDBACK_REQUESTS_COLLECTION = "feedback_requests";
@@ -39,6 +40,24 @@ function createTransporter() {
       pass: process.env.EMAIL_PASS,
     },
   });
+}
+
+type MailArgs = { from: string; to: string; subject: string; html: string };
+
+/** Küldés + naplózás (email_logs); a naplózási hiba sosem akadályozza a küldést. */
+async function sendLogged(
+  db: Db,
+  transporter: ReturnType<typeof createTransporter>,
+  mail: MailArgs,
+  kind: string
+): Promise<void> {
+  try {
+    const info = await transporter.sendMail(mail);
+    logEmail(db, { app: "soforok", to: mail.to, from: mail.from, subject: mail.subject, kind, status: "sent", messageId: info.messageId, html: mail.html });
+  } catch (error) {
+    logEmail(db, { app: "soforok", to: mail.to, from: mail.from, subject: mail.subject, kind, status: "failed", error: error instanceof Error ? error.message : String(error), html: mail.html });
+    throw error;
+  }
 }
 
 /** Az eddigi (nem NI) "Az utazása befejeződött" levél – változatlan tartalommal. */
@@ -154,12 +173,17 @@ export async function notifyTripCompleted(db: Db, trip: CompletedTrip): Promise<
     if (!isNi) {
       const travelerEmail = trip.travelerEmail;
       if (!travelerEmail || !EMAIL_PATTERN.test(travelerEmail)) return;
-      await transporter.sendMail({
-        from,
-        to: travelerEmail,
-        subject: `Az utazása befejeződött – #${bookingCode} – Pannon Transfer`,
-        html: buildCompletionHtml(trip.travelerName || travelerEmail, bookingCode),
-      });
+      await sendLogged(
+        db,
+        transporter,
+        {
+          from,
+          to: travelerEmail,
+          subject: `Az utazása befejeződött – #${bookingCode} – Pannon Transfer`,
+          html: buildCompletionHtml(trip.travelerName || travelerEmail, bookingCode),
+        },
+        "trip-completed"
+      );
       return;
     }
 
@@ -203,20 +227,25 @@ export async function notifyTripCompleted(db: Db, trip: CompletedTrip): Promise<
           createdAt: Date.now(),
         });
 
-        await transporter.sendMail({
-          from,
-          to: traveler.email,
-          subject:
-            language === "en"
-              ? `Your trip is complete – share your feedback – #${bookingCode}`
-              : `Az utazása befejeződött – kérjük, adjon visszajelzést – #${bookingCode}`,
-          html: buildNiFeedbackRequestHtml({
-            travelerName: traveler.name,
-            bookingCode,
-            feedbackUrl: `${PORTAL_URL}/feedback/${token}`,
-            language,
-          }),
-        });
+        await sendLogged(
+          db,
+          transporter,
+          {
+            from,
+            to: traveler.email,
+            subject:
+              language === "en"
+                ? `Your trip is complete – share your feedback – #${bookingCode}`
+                : `Az utazása befejeződött – kérjük, adjon visszajelzést – #${bookingCode}`,
+            html: buildNiFeedbackRequestHtml({
+              travelerName: traveler.name,
+              bookingCode,
+              feedbackUrl: `${PORTAL_URL}/feedback/${token}`,
+              language,
+            }),
+          },
+          "feedback-request:ni"
+        );
       } catch (error) {
         console.error(`[trip-completion] feedback email failed for ${traveler.email}`, error);
       }
